@@ -1,19 +1,15 @@
-provider "aws" {
-  region = var.aws_region
-}
-
 resource "aws_vpc" "main" {
   cidr_block       = "172.16.0.0/16"
   instance_tenancy = "default"
+
   tags = {
     Name = "main"
   }
 }
 
-#Create security group with firewall rules
-resource "aws_security_group" "jenkins-sg-2022" {
+resource "aws_security_group" "jenkins_sg" {
   name        = var.security_group
-  description = "security group for EC2 instance"
+  description = "Security group for EC2 instance"
 
   ingress {
     from_port   = 8080
@@ -29,11 +25,10 @@ resource "aws_security_group" "jenkins-sg-2022" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # outbound from jenkis server
   egress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -42,21 +37,22 @@ resource "aws_security_group" "jenkins-sg-2022" {
   }
 }
 
-resource "aws_instance" "myFirstInstance" {
+resource "aws_instance" "ec2" {
   ami                    = var.ami_id
-  key_name               = var.key_name
   instance_type          = var.instance_type
-  vpc_security_group_ids = [aws_security_group.jenkins-sg-2022.id]
+  key_name               = var.key_name
+  vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+
   tags = {
     Name = var.tag_name
   }
 }
 
-# Create Elastic IP address
-resource "aws_eip" "myFirstInstance" {
-  vpc      = true
-  instance = aws_instance.myFirstInstance.id
+resource "aws_eip" "ec2_eip" {
+  domain   = "vpc"
+  instance = aws_instance.ec2.id
+
   tags = {
-    Name = "my_elastic_ip"
+    Name = "ec2-eip"
   }
 }
