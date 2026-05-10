@@ -1,6 +1,5 @@
 resource "aws_vpc" "main" {
-  cidr_block       = "172.16.0.0/16"
-  instance_tenancy = "default"
+  cidr_block = "172.16.0.0/16"
 
   tags = {
     Name = "main"
@@ -8,8 +7,8 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_security_group" "jenkins_sg" {
-  name        = var.security_group
-  description = "Security group for EC2 instance"
+  name        = var.security_group_name
+  description = "Security group for EC2"
 
   ingress {
     from_port   = 8080
@@ -33,14 +32,14 @@ resource "aws_security_group" "jenkins_sg" {
   }
 
   tags = {
-    Name = var.security_group
+    Name = var.security_group_name
   }
 }
 
 resource "aws_instance" "ec2" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  key_name               = var.key_name
+  ami                    = data.aws_ami.latest_amazon_linux.id
+  instance_type         = var.instance_type
+  key_name              = var.key_name
   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
 
   tags = {
@@ -49,10 +48,24 @@ resource "aws_instance" "ec2" {
 }
 
 resource "aws_eip" "ec2_eip" {
-  domain   = "vpc"
   instance = aws_instance.ec2.id
+  domain   = "vpc"
 
   tags = {
     Name = "ec2-eip"
+  }
+}
+
+resource "aws_s3_bucket" "bucket" {
+  bucket_prefix = var.bucket_prefix
+
+  tags = var.tags
+}
+
+resource "aws_s3_bucket_versioning" "versioning" {
+  bucket = aws_s3_bucket.bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
 }
